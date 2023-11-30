@@ -1,0 +1,451 @@
+package com.huyuhui.utils.bar;
+
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.res.Resources;
+import android.os.Build;
+import android.provider.Settings;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.fragment.app.Fragment;
+
+import com.huyuhui.utils.rom.RomUtils;
+
+@SuppressWarnings("unused")
+public class BarUtils {
+    private static final String TAG_TITLE_VIEW = "TAG_TITLE_VIEW";
+    private static final int KEY_OFFSET = -1234;
+
+    @SuppressLint({"InternalInsetResource", "DiscouragedApi"})
+    public static int getStatusBarHeight() {
+        Resources resources = Resources.getSystem();
+        int resourceId = resources.getIdentifier("status_bar_height", "dimen", "android");
+        return resources.getDimensionPixelSize(resourceId);
+    }
+
+    /**
+     * Return whether the status bar is visible.
+     *
+     * @param window The window.
+     * @return {@code true}: yes<br>{@code false}: no
+     */
+    public static boolean isStatusBarVisible(@NonNull final Window window) {
+        int flags = window.getAttributes().flags;
+        return (flags & WindowManager.LayoutParams.FLAG_FULLSCREEN) == 0 &&
+                ((window.getDecorView().getWindowSystemUiVisibility() & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0);
+    }
+
+    /**
+     * Return the navigation bar's height.
+     *
+     * @return the navigation bar's height
+     */
+    @SuppressLint({"InternalInsetResource", "DiscouragedApi"})
+    public static int getNavBarHeight() {
+        Resources res = Resources.getSystem();
+        int resourceId = res.getIdentifier("navigation_bar_height", "dimen", "android");
+        if (resourceId != 0) {
+            return res.getDimensionPixelSize(resourceId);
+        } else {
+            return 0;
+        }
+    }
+
+    private static String getResNameById(Window window, int id) {
+        try {
+            return window.getContext().getResources().getResourceEntryName(id);
+        } catch (java.lang.Exception e) {
+            return "";
+        }
+    }
+
+    public static boolean isNavBarVisible(Window window) {
+        boolean isVisible = false;
+        ViewGroup decorView = (ViewGroup) window.getDecorView();
+        int i = 0;
+        int count = decorView.getChildCount();
+        while (i < count) {
+            View child = decorView.getChildAt(i);
+            int id = child.getId();
+            if (id != View.NO_ID) {
+                String resourceEntryName = getResNameById(window, id);
+                if ("navigationBarBackground".equals(resourceEntryName) && child.getVisibility() == View.VISIBLE) {
+                    isVisible = true;
+                    break;
+                }
+            }
+            i++;
+        }
+        if (isVisible) {
+//                对于三星手机，android10以下非OneUI2的版本，比如 s8，note8 等设备上，
+//                导航栏显示存在bug："当用户隐藏导航栏时显示输入法的时候导航栏会跟随显示"，会导致隐藏输入法之后判断错误
+//                这个问题在 OneUI 2 & android 10 版本已修复
+            if (RomUtils.isSamsung()
+                    && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+            ) {
+                try {
+                    return Settings.Global.getInt(
+                            window.getContext().getContentResolver(),
+                            "navigationbar_hide_bar_enabled"
+                    ) == 0;
+                } catch (Exception ignore) {
+                }
+            }
+            int visibility = decorView.getSystemUiVisibility();
+            isVisible = (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+        }
+        return isVisible;
+    }
+
+    public static BarUtils with(Activity activity) {
+        return new BarUtils(activity.getWindow());
+    }
+
+    public static BarUtils with(Fragment fragment) {
+        if (fragment.getActivity() == null) return null;
+        return new BarUtils(fragment.getActivity().getWindow());
+    }
+
+    private final Window window;
+    private boolean needDisplayCutout = false;
+
+    private WindowInsetsControllerCompat controller;
+
+    public WindowInsetsCompat getWindowInsets() {
+        return ViewCompat.getRootWindowInsets(window.getDecorView());
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.P)
+    public int getLayoutInDisplayCutoutMode() {
+        return window.getAttributes().layoutInDisplayCutoutMode;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.P)
+    public BarUtils setLayoutInDisplayCutoutMode(int layoutInDisplayCutoutMode) {
+        window.getAttributes().layoutInDisplayCutoutMode = layoutInDisplayCutoutMode;
+        return this;
+    }
+
+
+    public BarUtils setNeedDisplayCutout(boolean needDisplayCutout) {
+        if (this.needDisplayCutout != needDisplayCutout) {
+            window.getDecorView().requestApplyInsets();
+        }
+        this.needDisplayCutout = needDisplayCutout;
+        return this;
+    }
+
+
+    public WindowInsetsControllerCompat getController() {
+        if (controller == null) {
+            controller = new WindowInsetsControllerCompat(window, window.findViewById(android.R.id.content));
+            controller.addOnControllableInsetsChangedListener((controller, typeMask) -> {
+
+            });
+        }
+        return controller;
+    }
+
+    public BarUtils(Window window) {
+        this.window = window;
+        ViewCompat.setOnApplyWindowInsetsListener(window.getDecorView(), (v, insets) -> {
+            if (needDisplayCutout && insets.getDisplayCutout() != null) {
+                WindowInsetsCompat removeCutoutInsets = new WindowInsetsCompat.Builder(insets)
+                        .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.NONE).build();
+                return ViewCompat.onApplyWindowInsets(v, removeCutoutInsets);
+            } else {
+                return ViewCompat.onApplyWindowInsets(v, insets);
+            }
+        });
+    }
+
+    /**
+     * Set the status bar's visibility.
+     *
+     * @param isVisible   True to set status bar visible, false otherwise.
+     * @param isImmersive 是否沉浸
+     * @param isSticky    手势触发显示后，是否恢复隐藏
+     */
+    public BarUtils setStatusBarVisibility(boolean isVisible, boolean isImmersive, boolean isSticky) {
+        if (isImmersive) {
+            if (isSticky) {
+                getController().setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            } else {
+                getController().setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
+            }
+        }
+        if (isVisible) {
+            getController().show(WindowInsetsCompat.Type.statusBars());
+        } else {
+            getController().hide(WindowInsetsCompat.Type.statusBars());
+        }
+        return this;
+    }
+
+    public BarUtils setStatusBarVisibility(boolean isVisible, boolean isImmersive) {
+        return setStatusBarVisibility(isVisible, isImmersive, true);
+    }
+
+    public BarUtils setStatusBarVisibility(boolean isVisible) {
+        return setStatusBarVisibility(isVisible, true, true);
+    }
+
+    public int getStatusBarHeightCompat() {
+        if (window.getDecorView().isAttachedToWindow()) {
+            if (getWindowInsets() == null) {
+                return BarUtils.getStatusBarHeight();
+            } else {
+                return getWindowInsets().getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top;
+            }
+        } else {
+            return BarUtils.getStatusBarHeight();
+        }
+    }
+
+    public boolean isStatusBarVisibleCompat() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return BarUtils.isStatusBarVisible(window);
+        }
+        if (window.getDecorView().isAttachedToWindow()) {
+            if (getWindowInsets() == null) {
+                return BarUtils.isStatusBarVisible(window);
+            } else {
+                return getWindowInsets().isVisible(WindowInsetsCompat.Type.statusBars());
+            }
+        } else {
+            return BarUtils.isStatusBarVisible(window);
+        }
+    }
+
+    public boolean isStatusBarLightMode() {
+        return getController().isAppearanceLightStatusBars();
+    }
+
+    public BarUtils setStatusBarLightMode(boolean isLight) {
+        getController().setAppearanceLightStatusBars(isLight);
+        return this;
+    }
+
+    public @ColorInt int getStatusBarColor() {
+        return window.getStatusBarColor();
+    }
+
+    public BarUtils setStatusBarColor(@ColorInt int statusBarColor) {
+        window.setStatusBarColor(statusBarColor);
+        return this;
+    }
+
+
+    // navigation bar
+
+    public BarUtils setNavBarVisibility(boolean isVisible, boolean isImmersive, boolean isSticky) {
+        if (isImmersive) {
+            if (isSticky) {
+                getController().setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            } else {
+                getController().setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
+            }
+        }
+        if (isVisible) {
+            getController().show(WindowInsetsCompat.Type.navigationBars());
+        } else {
+            getController().hide(WindowInsetsCompat.Type.navigationBars());
+        }
+        return this;
+    }
+
+    public BarUtils setNavBarVisibility(boolean isVisible, boolean isImmersive) {
+        return setNavBarVisibility(isVisible, isImmersive, true);
+    }
+
+    public BarUtils setNavBarVisibility(boolean isVisible) {
+        return setNavBarVisibility(isVisible, true, true);
+    }
+
+    public int getNavBarHeightCompat() {
+        if (window.getDecorView().isAttachedToWindow()) {
+            if (getWindowInsets() == null) {
+                return getStatusBarHeight();
+            } else {
+                Insets insets = getWindowInsets().getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars());
+                return Math.max(Math.max(insets.left,insets.right),insets.bottom);
+            }
+        } else {
+            return getNavBarHeight();
+        }
+    }
+
+    public boolean isNavBarVisibleCompat() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            return BarUtils.isNavBarVisible(window);
+        }
+        if (window.getDecorView().isAttachedToWindow()) {
+            if (getWindowInsets() == null) {
+                return isNavBarVisible(window);
+            } else {
+                return getWindowInsets().isVisible(WindowInsetsCompat.Type.navigationBars());
+            }
+        } else {
+            return isNavBarVisible(window);
+        }
+    }
+
+    public @ColorInt int getNavBarColor() {
+        return window.getNavigationBarColor();
+    }
+
+    public BarUtils setNavBarColor(@ColorInt int navBarColor) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.setNavigationBarContrastEnforced(false);
+        }
+        window.setNavigationBarColor(navBarColor);
+        return this;
+    }
+
+    public boolean isNavBarLightMode() {
+        return getController().isAppearanceLightNavigationBars();
+    }
+
+    public BarUtils setNavBarLightMode(boolean isLight) {
+        getController().setAppearanceLightNavigationBars(isLight);
+        return this;
+    }
+
+    public BarUtils immerse() {
+        return immerse(WindowInsetsCompat.Type.systemBars());
+    }
+
+    public BarUtils immerse(@WindowInsetsCompat.Type.InsetsType int type) {
+        if (type == WindowInsetsCompat.Type.systemBars()
+                || type == WindowInsetsCompat.Type.statusBars()
+                || type == WindowInsetsCompat.Type.navigationBars()) {
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(window.findViewById(android.R.id.content), (v, insets) -> {
+            ViewCompat.onApplyWindowInsets(v, insets);
+            setImmersePadding(v, type, insets);
+            //消费掉systemBars部分的insets
+            return new WindowInsetsCompat.Builder(insets).setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE).build();
+        });
+        window.getDecorView().requestApplyInsets();
+        return this;
+    }
+
+    public BarUtils exitImmerse() {
+        removeTitleView();
+        WindowCompat.setDecorFitsSystemWindows(window, true);
+        ViewCompat.setOnApplyWindowInsetsListener(window.findViewById(android.R.id.content), null);
+        resetViewPadding();
+        return this;
+    }
+
+    private void setImmersePadding(View view, @WindowInsetsCompat.Type.InsetsType int type, WindowInsetsCompat insets) {
+        if (type == WindowInsetsCompat.Type.systemBars()) {
+            view.setPadding(0, 0, 0, 0);
+            if (isStatusBarVisibleCompat()) {
+                enableTitleView();
+            } else {
+                disableTitleView();
+            }
+        } else if (type == WindowInsetsCompat.Type.statusBars()) {
+            int padding = 0;
+            if (isNavBarVisibleCompat()) {
+                padding = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars()).bottom;
+            }
+            view.setPadding(0, 0, 0, padding);
+            if (isStatusBarVisibleCompat()) {
+                enableTitleView();
+            } else {
+                disableTitleView();
+            }
+        } else if (type == WindowInsetsCompat.Type.navigationBars()) {
+            int padding = 0;
+            if (isStatusBarVisibleCompat()) {
+                padding = insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top;
+            }
+            view.setPadding(0, padding, 0, 0);
+        }
+    }
+
+    public BarUtils titleView(View view) {
+        if (view.getRootView() != window.getDecorView().getRootView()) {
+            return this;
+        }
+        View titleView = window.getDecorView().findViewWithTag(TAG_TITLE_VIEW);
+        if (titleView != null && titleView != view) {
+            titleView.setTag(null);
+        }
+        view.setTag(TAG_TITLE_VIEW);
+        window.getDecorView().requestApplyInsets();
+        return this;
+    }
+
+    public BarUtils removeTitleView() {
+        disableTitleView();
+        View view = window.getDecorView().findViewWithTag(TAG_TITLE_VIEW);
+        if (view == null) return this;
+        view.setTag(null);
+        view.setTag(KEY_OFFSET, null);
+        return this;
+    }
+
+    private void resetViewPadding() {
+        disableTitleView();
+        window.findViewById(android.R.id.content).setPadding(0, 0, 0, 0);
+    }
+
+    private void enableTitleView() {
+        View view = window.getDecorView().findViewWithTag(TAG_TITLE_VIEW);
+        if (view == null) return;
+        Object offsetObj = view.getTag(KEY_OFFSET);
+        if (offsetObj == null || (int) offsetObj == 0) {
+            int offset = getStatusBarHeightCompat();
+            view.setTag(KEY_OFFSET, offset);
+            updateBarView(view, offset);
+        } else {
+            int offset = (int) offsetObj;
+            if (offset != getStatusBarHeightCompat()) {
+                offset = getStatusBarHeightCompat() - offset;
+                view.setTag(KEY_OFFSET, getStatusBarHeightCompat());
+                updateBarView(view, offset);
+            }
+        }
+    }
+
+    private void disableTitleView() {
+        View view = window.getDecorView().findViewWithTag(TAG_TITLE_VIEW);
+        if (view == null) return;
+        Object offset = view.getTag(KEY_OFFSET);
+        if (offset == null || (int) offset == 0) return;
+        updateBarView(view, -(int) offset);
+        view.setTag(KEY_OFFSET, 0);
+    }
+
+
+    private void updateBarView(View titleView, int offset) {
+        ViewGroup.LayoutParams layoutParams = titleView.getLayoutParams();
+        if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT || layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {
+            titleView.post(() -> {
+                ViewCompat.setPaddingRelative(titleView, titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
+                layoutParams.height = titleView.getHeight() + offset;
+                titleView.setLayoutParams(layoutParams);
+            });
+        } else {
+            ViewCompat.setPaddingRelative(titleView, titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
+            layoutParams.height += offset;
+            titleView.setLayoutParams(layoutParams);
+        }
+    }
+}
