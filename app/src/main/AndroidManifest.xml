@@ -18,6 +18,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App"
         tools:targetApi="tiramisu">
+        <service
+            android:name=".languages.LanguagesService"
+            android:enabled="true"
+            android:exported="false"></service>
+
         <activity
             android:name=".bar.BarFragmentsActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"
@@ -42,6 +47,15 @@
         <activity
             android:name=".languages.LanguagesActivity2"
             android:exported="false" />
+
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="false" />
+        </service>
     </application>
 
 </manifest>

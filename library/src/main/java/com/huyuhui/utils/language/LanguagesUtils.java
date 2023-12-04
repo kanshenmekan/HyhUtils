@@ -1,15 +1,19 @@
 package com.huyuhui.utils.language;
 
 import android.app.LocaleManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.LocaleList;
 
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.app.AppLocalesMetadataHolderService;
 
 import java.util.Locale;
 
@@ -136,5 +140,20 @@ final class LanguagesUtils {
                 PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY)).isEmpty();
         }
         return !packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY).isEmpty();
+    }
+
+
+    static boolean hasAutoStoreLocales(Context context){
+        try {
+            ServiceInfo serviceInfo = AppLocalesMetadataHolderService.getServiceInfo(context);
+            Bundle metaData = serviceInfo.metaData;
+            if (metaData != null) {
+                // 在meta-data中获取你感兴趣的值
+                return metaData.getBoolean("autoStoreLocales");
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

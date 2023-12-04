@@ -36,7 +36,7 @@ public final class MultiLanguages {
         sApplication = application;
         LanguagesUtils.setDefaultLocale(application);
         //api小于33，设置一下语言，防止没有设置autoStoreLocales为true的情况
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && !LanguagesConfig.isConfigSystemLanguage(application)) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && !LanguagesConfig.isConfigSystemLanguage(application) && !LanguagesUtils.hasAutoStoreLocales(application)) {
             AppCompatDelegate.setApplicationLocales(LocaleListCompat.create(LanguagesUtils.getLocale(application)));
         }
 
@@ -56,7 +56,13 @@ public final class MultiLanguages {
             if (LanguagesConfig.isConfigSystemLanguage(context)) {
                 return context;
             } else {
-                Locale locale = LanguagesConfig.readConfigLanguageSetting(context);
+                LocaleListCompat localeListCompat = AppCompatDelegate.getApplicationLocales();
+                Locale locale;
+                if (localeListCompat.isEmpty()){
+                    locale = LanguagesConfig.readConfigLanguageSetting(context);
+                }else {
+                    locale = localeListCompat.get(0);
+                }
                 if (locale == null || LanguagesUtils.getLocale(context).equals(locale)) {
                     return context;
                 }

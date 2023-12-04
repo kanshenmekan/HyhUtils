@@ -8,7 +8,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.WindowManager
 import androidx.viewpager2.widget.ViewPager2
-import com.huyuhui.utils.bar.BarHelper
 import com.huyuhui.utils.bar.BarUtils
 import com.huyuhui.utils.demo.BaseActivity
 import com.huyuhui.utils.demo.R
@@ -36,7 +35,7 @@ class BarActivity : BaseActivity<ActivityBarBinding>(){
         }
         setSupportActionBar(binding.toolbar)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            barUtils.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+            barUtils.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
         barUtils.setStatusBarColor(Color.parseColor("#22050505")).setStatusBarLightMode(false)
             .setNavBarColor(Color.parseColor("#22050505")).setStatusBarLightMode(true)

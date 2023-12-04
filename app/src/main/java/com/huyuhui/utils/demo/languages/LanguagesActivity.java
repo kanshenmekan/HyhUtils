@@ -67,6 +67,7 @@ public final class LanguagesActivity extends BaseActivity<ActivityLanguagesBindi
             startActivity(new Intent(LanguagesActivity.this,LanguagesActivity2.class));
 
         });
+        startService(new Intent(this,LanguagesService.class));
     }
 
 
@@ -144,6 +145,7 @@ public final class LanguagesActivity extends BaseActivity<ActivityLanguagesBindi
         mWebView.removeAllViews();
         //销毁此的WebView的内部状态
         mWebView.destroy();
+        stopService(new Intent(this,LanguagesService.class));
     }
 
     public static class LanguagesViewClient extends WebViewClient {

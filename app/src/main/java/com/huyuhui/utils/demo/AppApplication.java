@@ -5,6 +5,8 @@ import android.content.Context;
 import android.util.Log;
 
 
+import androidx.appcompat.app.AppCompatDelegate;
+
 import com.huyuhui.utils.language.MultiLanguages;
 import com.huyuhui.utils.language.OnLanguageListener;
 
