@@ -1,13 +1,10 @@
 package com.huyuhui.utils.demo;
 
-import android.content.Context;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewbinding.ViewBinding;
-
-import com.huyuhui.utils.language.MultiLanguages;
 
 public abstract class BaseActivity<VB extends ViewBinding> extends AppCompatActivity {
     protected VB binding;

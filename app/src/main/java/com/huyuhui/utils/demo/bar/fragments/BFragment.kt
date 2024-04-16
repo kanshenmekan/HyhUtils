@@ -21,10 +21,10 @@ class BFragment : BaseFragment<FragmentBBinding>() {
         super.onResume()
         if (!isHidden){
             val barHelper = BarHelper(requireActivity().window)
-            barHelper.setStatusBarColor(Color.TRANSPARENT).setStatusBarLightMode(true)
-                .titleView(binding.tv)
-                .setNavBarVisible(false)
-                .immerse(true).apply()
+            barHelper.setStatusBarColor(Color.GREEN).setStatusBarLightMode(false)
+//                .titleView(binding.tv)
+                .setNavBarVisible(true)
+                .immerse(false).apply()
         }
     }
 
@@ -32,10 +32,10 @@ class BFragment : BaseFragment<FragmentBBinding>() {
         super.onHiddenChanged(hidden)
         if (!hidden){
             val barHelper = BarHelper(requireActivity().window)
-            barHelper.setStatusBarColor(Color.TRANSPARENT).setStatusBarLightMode(true)
-                .titleView(binding.tv)
-                .setNavBarVisible(false)
-                .immerse(true).apply()
+            barHelper.setStatusBarColor(Color.GREEN).setStatusBarLightMode(false)
+//                .titleView(binding.tv)
+                .setNavBarVisible(true)
+                .immerse(false).apply()
         }
     }
 }
