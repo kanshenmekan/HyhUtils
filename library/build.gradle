@@ -43,5 +43,5 @@ afterEvaluate {
     }
 }
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.0-beta01'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
 }
