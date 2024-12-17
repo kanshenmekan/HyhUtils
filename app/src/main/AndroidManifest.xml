@@ -21,7 +21,7 @@
         <service
             android:name=".languages.LanguagesService"
             android:enabled="true"
-            android:exported="false"></service>
+            android:exported="false" />
 
         <activity
             android:name=".bar.BarFragmentsActivity"

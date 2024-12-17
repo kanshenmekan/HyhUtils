@@ -4,26 +4,44 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.CancellationSignal;
 import android.provider.Settings;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.Interpolator;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsAnimationCompat;
+import androidx.core.view.WindowInsetsAnimationControlListenerCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
 import com.huyuhui.utils.rom.RomUtils;
 
+import java.util.List;
+
 @SuppressWarnings("unused")
 public class BarUtils {
+
+    public interface KeyBordHeightChangeCallBack {
+        default void onPrepare() {
+        }
+        default void onStart(int keyBordHeight){}
+        void onProgress(float fraction, int height);
+
+        default void onEnd() {
+        }
+    }
+
     private static final String TAG_TITLE_VIEW = "TAG_TITLE_VIEW";
     private static final int KEY_OFFSET = -1234;
 
@@ -188,7 +206,9 @@ public class BarUtils {
         }
         if (isVisible) {
             getController().show(WindowInsetsCompat.Type.statusBars());
+            enableTitleView();
         } else {
+            disableTitleView();
             getController().hide(WindowInsetsCompat.Type.statusBars());
         }
         return this;
@@ -280,7 +300,7 @@ public class BarUtils {
                 return getStatusBarHeight();
             } else {
                 Insets insets = getWindowInsets().getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars());
-                return Math.max(Math.max(insets.left,insets.right),insets.bottom);
+                return Math.max(Math.max(insets.left, insets.right), insets.bottom);
             }
         } else {
             return getNavBarHeight();
@@ -438,14 +458,109 @@ public class BarUtils {
         ViewGroup.LayoutParams layoutParams = titleView.getLayoutParams();
         if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT || layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {
             titleView.post(() -> {
-                ViewCompat.setPaddingRelative(titleView, titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
-                layoutParams.height = titleView.getHeight() + offset;
+                titleView.setPaddingRelative(titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
+                //存在同一时间多次post，比如设置titleView又立马removeTileView，这样getHeight就会是之前的值，但是layoutParams.height会更新
+                if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT || layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {
+                    layoutParams.height = titleView.getHeight() + offset;
+                } else {
+                    layoutParams.height += offset;
+                }
                 titleView.setLayoutParams(layoutParams);
             });
         } else {
-            ViewCompat.setPaddingRelative(titleView, titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
+            titleView.setPaddingRelative(titleView.getPaddingStart(), titleView.getPaddingTop() + offset, titleView.getPaddingEnd(), titleView.getPaddingBottom());
             layoutParams.height += offset;
             titleView.setLayoutParams(layoutParams);
         }
+    }
+
+
+    //这个方法可以动画控制系统这些types，listener的onReady方法里面通过动画setInsetsAndAlpha
+    //官方例子 https://github.com/android/user-interface-samples/blob/master/WindowInsetsAnimation/app/src/main/java/com/google/android/samples/insetsanimation/SimpleImeAnimationController.kt#L352
+    public void controlWindowInsetsAnimation(@WindowInsetsCompat.Type.InsetsType int types, long durationMillis,
+                                             @Nullable Interpolator interpolator,
+                                             @Nullable CancellationSignal cancellationSignal,
+                                             @NonNull WindowInsetsAnimationControlListenerCompat listener) {
+        getController().controlWindowInsetsAnimation(types, durationMillis, interpolator, cancellationSignal, listener);
+    }
+
+    public void setWindowInsetsAnimationCallback(View view, WindowInsetsAnimationCompat.Callback callback) {
+        ViewCompat.setWindowInsetsAnimationCallback(view, callback);
+    }
+
+
+    public void hideSoftKeyboard() {
+        getController().hide(WindowInsetsCompat.Type.ime());
+    }
+
+    public void showSoftKeyboard() {
+        getController().show(WindowInsetsCompat.Type.ime());
+    }
+
+    public boolean isSoftKeyboardShow() {
+        if (window.getDecorView().isAttachedToWindow()) {
+            return getWindowInsets().isVisible(WindowInsetsCompat.Type.ime());
+        } else return false;
+    }
+
+    public int getSoftKeyboardHeight() {
+        if (window.getDecorView().isAttachedToWindow()) {
+            return getWindowInsets().getInsetsIgnoringVisibility(WindowInsetsCompat.Type.ime()).bottom;
+        } else return 0;
+    }
+
+    /**
+     * 只监听键盘的高度变化，如果需要监听其他的，需要自己写setWindowInsetsAnimationCallback
+     * 考虑底部高度的话，还需要考虑导航栏的高度
+     * @param callBack
+     */
+    public void addKeyBordHeightChangeCallBack(KeyBordHeightChangeCallBack callBack) {
+        setWindowInsetsAnimationCallback(window.getDecorView().getRootView(), new WindowInsetsAnimationCompat.Callback(WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_STOP) {
+            @Override
+            public void onPrepare(@NonNull WindowInsetsAnimationCompat animation) {
+                super.onPrepare(animation);
+                if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) {
+                    callBack.onPrepare();
+                }
+            }
+
+            //当内嵌动画开始时，系统会调用 onStart。您可以使用它将所有视图属性设置为布局更改的最终状态
+            @NonNull
+            @Override
+            public WindowInsetsAnimationCompat.BoundsCompat onStart(@NonNull WindowInsetsAnimationCompat animation, @NonNull WindowInsetsAnimationCompat.BoundsCompat bounds) {
+                //bounds 代表里面有lower 和upper 分别表示引起insets的窗口的大小正在改变，该动画的下限和上限
+                //如果是显示或者隐藏，那么下限就是Insets.None,那么上限就是全部显示的时候的Insets
+                if((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0){
+                    callBack.onStart(bounds.getUpperBound().bottom);
+                }
+                return super.onStart(animation, bounds);
+            }
+
+            @NonNull
+            @Override
+            public WindowInsetsCompat onProgress(@NonNull WindowInsetsCompat insets, @NonNull List<WindowInsetsAnimationCompat> runningAnimations) {
+                //找到键盘的动画
+                WindowInsetsAnimationCompat imeAnimation = null;
+                for (WindowInsetsAnimationCompat animation : runningAnimations) {
+                    if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) {
+                        imeAnimation = animation;
+                        break;
+                    }
+                }
+                if (imeAnimation != null) {
+                    float fraction = imeAnimation.getInterpolatedFraction() < 0 ? 0 : (imeAnimation.getInterpolatedFraction() > 1 ? 1 : imeAnimation.getInterpolatedFraction());
+                    callBack.onProgress(fraction, insets.getInsets(WindowInsetsCompat.Type.ime()).bottom);
+                }
+                return insets;
+            }
+
+            @Override
+            public void onEnd(@NonNull WindowInsetsAnimationCompat animation) {
+                super.onEnd(animation);
+                if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) {
+                    callBack.onEnd();
+                }
+            }
+        });
     }
 }

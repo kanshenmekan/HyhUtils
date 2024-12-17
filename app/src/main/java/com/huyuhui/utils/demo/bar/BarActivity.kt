@@ -32,11 +32,13 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         val barUtils = BarUtils(window)
         binding.appbar.addOnOffsetChangedListener { appBarLayout, verticalOffset ->
             val alpha = abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange
-            if (alpha > 0.3){
+            if (alpha > 0.3) {
                 binding.toolbar.visibility = View.VISIBLE
                 binding.toolbar.alpha = alpha
-            }else{
+                barUtils.setStatusBarVisibility(true)
+            } else {
                 binding.toolbar.visibility = View.GONE
+                barUtils.setStatusBarVisibility(false)
             }
 //            binding.toolbar.alpha = abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange
             barUtils.statusBarColor = evaluate(
@@ -52,6 +54,7 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         }
         barUtils.setStatusBarColor(Color.parseColor("#22050505")).setStatusBarLightMode(false)
             .setNavBarColor(Color.parseColor("#22050505")).setStatusBarLightMode(true)
+            .setStatusBarVisibility(false)
             .titleView(binding.toolbar).immerse()
     }
 
@@ -68,4 +71,5 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         }
         return true
     }
+
 }

@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'maven-publish'
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -17,14 +18,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    lintOptions {
-        abortOnError false
-    }
     publishing{
         singleVariant('release'){
             withSourcesJar()
             withJavadocJar()
         }
+    }
+    lint {
+        abortOnError false
     }
 
 }
