@@ -1,21 +1,13 @@
 package com.huyuhui.utils.demo.bar
 
 import android.os.Bundle
-import android.util.Log
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsCompat.Type
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationBarView
-import com.huyuhui.utils.bar.BarUtils
 import com.huyuhui.utils.demo.BaseActivity
 import com.huyuhui.utils.demo.R
 import com.huyuhui.utils.demo.bar.fragments.AFragment
 import com.huyuhui.utils.demo.bar.fragments.BFragment
 import com.huyuhui.utils.demo.bar.fragments.CFragment
 import com.huyuhui.utils.demo.databinding.ActivityBarFragmentsBinding
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
     private val aFragment = AFragment()

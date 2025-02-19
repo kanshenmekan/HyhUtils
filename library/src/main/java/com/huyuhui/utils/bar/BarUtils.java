@@ -152,7 +152,9 @@ public class BarUtils {
 
     @RequiresApi(api = Build.VERSION_CODES.P)
     public BarUtils setLayoutInDisplayCutoutMode(int layoutInDisplayCutoutMode) {
-        window.getAttributes().layoutInDisplayCutoutMode = layoutInDisplayCutoutMode;
+        WindowManager.LayoutParams lp = window.getAttributes();
+        lp.layoutInDisplayCutoutMode = layoutInDisplayCutoutMode;
+        window.setAttributes(lp);
         return this;
     }
 
