@@ -15,5 +15,7 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "HyhUtils"
-include ':app'
-include ':library'
+include ':demo'
+include ':hyhUtils'
+include ':hyhUtils-kotlin'
+include ':demo-kotlin'
