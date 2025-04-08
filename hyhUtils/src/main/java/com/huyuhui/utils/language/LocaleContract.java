@@ -2,7 +2,7 @@ package com.huyuhui.utils.language;
 
 import java.util.Locale;
 
-
+@SuppressWarnings("unused")
 public final class LocaleContract {
 
    /** 中文 */

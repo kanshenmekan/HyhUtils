@@ -32,13 +32,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
-@SuppressWarnings({"unused","UnusedReturnValue"})
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class BarUtils {
 
     public interface KeyBordHeightChangeCallBack {
         default void onPrepare() {
         }
-        default void onStart(int keyBordHeight){}
+
+        default void onStart(int keyBordHeight) {
+        }
+
         void onProgress(float fraction, int height);
 
         default void onEnd() {
@@ -368,13 +371,20 @@ public class BarUtils {
             WindowCompat.setDecorFitsSystemWindows(window, false);
         }
         ViewCompat.setOnApplyWindowInsetsListener(window.findViewById(android.R.id.content), (v, insets) -> {
-            ViewCompat.onApplyWindowInsets(v, insets);
             setImmersePadding(v, type, insets);
+            return ViewCompat.onApplyWindowInsets(v, insets);
             //消费掉systemBars部分的insets
-            return new WindowInsetsCompat.Builder(insets).setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE).build();
+//            return new WindowInsetsCompat.Builder(insets).setInsets(WindowInsetsCompat.Type.systemBars(), Insets.NONE).build();
         });
         window.getDecorView().requestApplyInsets();
         return this;
+    }
+
+    public void clearViewAppliedInsets(View view, @WindowInsetsCompat.Type.InsetsType int type) {
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> new WindowInsetsCompat.Builder(insets).setInsets(
+                type,
+                Insets.NONE
+        ).build());
     }
 
     public BarUtils exitImmerse() {
@@ -526,6 +536,7 @@ public class BarUtils {
     /**
      * 只监听键盘的高度变化，如果需要监听其他的，需要自己写setWindowInsetsAnimationCallback
      * 考虑底部高度的话，还需要考虑导航栏的高度
+     *
      * @param callBack 键盘高度监听回调
      */
     public void addKeyBordHeightChangeCallBack(KeyBordHeightChangeCallBack callBack) {
@@ -544,7 +555,7 @@ public class BarUtils {
             public WindowInsetsAnimationCompat.BoundsCompat onStart(@NonNull WindowInsetsAnimationCompat animation, @NonNull WindowInsetsAnimationCompat.BoundsCompat bounds) {
                 //bounds 代表里面有lower 和upper 分别表示引起insets的窗口的大小正在改变，该动画的下限和上限
                 //如果是显示或者隐藏，那么下限就是Insets.None,那么上限就是全部显示的时候的Insets
-                if((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0){
+                if ((animation.getTypeMask() & WindowInsetsCompat.Type.ime()) != 0) {
                     callBack.onStart(bounds.getUpperBound().bottom);
                 }
                 return super.onStart(animation, bounds);

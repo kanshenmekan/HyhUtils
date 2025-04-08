@@ -4,12 +4,12 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
-import android.net.Uri
 import android.os.Build
 import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.core.os.LocaleListCompat
 import java.util.Locale
 
@@ -243,7 +243,7 @@ object MultiLanguages {
         get() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val intent = Intent(Settings.ACTION_APP_LOCALE_SETTINGS)
-                intent.setData(Uri.parse("package:" + application.packageName))
+                intent.data = ("package:" + application.packageName).toUri()
                 if (LanguagesUtils.areActivityIntent(application, intent)) {
                     return intent
                 }

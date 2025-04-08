@@ -22,6 +22,7 @@ import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsAnimationControlListenerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import com.huyuhui.hyhutilskotlin.rom.RomUtils.isSamsung
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -103,7 +104,7 @@ class BarUtils(private val window: Window) {
                 val id = child.id
                 if (id != View.NO_ID) {
                     val resourceEntryName = getResNameById(window, id)
-                    if ("navigationBarBackground" == resourceEntryName && child.visibility == View.VISIBLE) {
+                    if ("navigationBarBackground" == resourceEntryName && child.isVisible) {
                         isVisible = true
                         break
                     }
@@ -341,15 +342,25 @@ class BarUtils(private val window: Window) {
             ViewCompat.setOnApplyWindowInsetsListener(
                 window.findViewById(android.R.id.content)
             ) { v: View, insets: WindowInsetsCompat ->
-                ViewCompat.onApplyWindowInsets(v, insets)
                 setImmersePadding(v, type, insets)
-                WindowInsetsCompat.Builder(insets).setInsets(
-                    WindowInsetsCompat.Type.systemBars(),
-                    Insets.NONE
-                ).build()
+                ViewCompat.onApplyWindowInsets(v, insets)
+                //这里不消费掉insets了，让外部去处理,这里提供一个案例 clearViewInsets方法
+//                WindowInsetsCompat.Builder(insets).setInsets(
+//                    type,
+//                    Insets.NONE
+//                ).build()
             }
             window.decorView.requestApplyInsets()
         }
+
+    fun clearViewAppliedInsets(view: View, @WindowInsetsCompat.Type.InsetsType type: Int) {
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v: View, insets: WindowInsetsCompat ->
+            WindowInsetsCompat.Builder(insets).setInsets(
+                type,
+                Insets.NONE
+            ).build()
+        }
+    }
 
     fun exitImmerse() = apply {
         removeTitleView()

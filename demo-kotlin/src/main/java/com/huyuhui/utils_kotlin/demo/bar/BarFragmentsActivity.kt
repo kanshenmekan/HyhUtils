@@ -1,12 +1,19 @@
 package com.huyuhui.utils_kotlin.demo.bar
 
 import android.os.Bundle
+import android.util.Log
+import android.view.View
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.get
 import com.google.android.material.navigation.NavigationBarView
+import com.huyuhui.hyhutilskotlin.bar.BarUtils
+import com.huyuhui.utils_kotlin.demo.BaseActivity
+import com.huyuhui.utils_kotlin.demo.R
 import com.huyuhui.utils_kotlin.demo.bar.fragments.AFragment
 import com.huyuhui.utils_kotlin.demo.bar.fragments.BFragment
 import com.huyuhui.utils_kotlin.demo.bar.fragments.CFragment
-import com.huyuhui.utils_kotlin.demo.BaseActivity
-import com.huyuhui.utils_kotlin.demo.R
 import com.huyuhui.utils_kotlin.demo.databinding.ActivityBarFragmentsBinding
 
 class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
@@ -21,29 +28,14 @@ class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
                 R.id.navigation_home -> {
                     transaction
                         .hide(bFragment).hide(cFragment).show(aFragment)
-//                    binding.toolbar.visibility = View.GONE
-//                    val barHelper = BarHelper(window)
-//                    barHelper.setStatusBarColor(Color.TRANSPARENT)
-//                        .setNavBarColor(Color.parseColor("#22050505"))
-//                        .immerse(true,WindowInsetsCompat.Type.statusBars()).apply()
                 }
 
                 R.id.navigation_dashboard -> {
                     transaction.hide(aFragment).hide(cFragment).show(bFragment)
-//                    binding.toolbar.visibility = View.VISIBLE
-//                    val barHelper = BarHelper(window)
-//                    barHelper.setStatusBarColor(Color.TRANSPARENT).setStatusBarLightMode(true)
-//                        .titleView(binding.toolbar)
-//                        .setNavBarVisible(false)
-//                        .immerse(true).apply()
                 }
 
                 R.id.navigation_notifications -> {
                     transaction.hide(aFragment).hide(bFragment).show(cFragment)
-//                    binding.toolbar.visibility = View.VISIBLE
-//                    val barHelper = BarHelper(window)
-//                    barHelper.setStatusBarColor(Color.GREEN).setStatusBarLightMode(false)
-//                        .immerse(false).apply()
                 }
             }
             transaction.commit()
@@ -55,8 +47,9 @@ class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
                 .hide(bFragment)
                 .hide(cFragment)
                 .show(aFragment)
-            onItemSelectedListener.onNavigationItemSelected(binding.navView.menu.getItem(0))
+            onItemSelectedListener.onNavigationItemSelected(binding.navView.menu[0])
         }.commit()
         binding.navView.setOnItemSelectedListener(onItemSelectedListener)
+        BarUtils.with(this).clearViewAppliedInsets(binding.navView, WindowInsetsCompat.Type.navigationBars())
     }
 }

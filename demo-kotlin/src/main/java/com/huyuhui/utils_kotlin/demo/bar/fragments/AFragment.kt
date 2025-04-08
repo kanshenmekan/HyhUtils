@@ -8,6 +8,7 @@ import com.huyuhui.hyhutilskotlin.bar.BarConfig
 import com.huyuhui.hyhutilskotlin.bar.apply
 import com.huyuhui.utils_kotlin.demo.BaseFragment
 import com.huyuhui.utils_kotlin.demo.databinding.FragmentABinding
+import androidx.core.graphics.toColorInt
 
 class AFragment : BaseFragment<FragmentABinding>() {
 
@@ -25,7 +26,7 @@ class AFragment : BaseFragment<FragmentABinding>() {
         super.onResume()
         if (!isHidden){
             val barConfig = BarConfig.Builder().statusBarColor(Color.TRANSPARENT)
-                .navBarColor(Color.parseColor("#22050505"))
+                .navBarColor("#22050505".toColorInt())
                 .immerse(WindowInsetsCompat.Type.statusBars()).build()
             barUtils.apply(barConfig)
         }
@@ -35,7 +36,7 @@ class AFragment : BaseFragment<FragmentABinding>() {
         super.onHiddenChanged(hidden)
         if (!hidden){
             val barConfig = BarConfig.Builder().statusBarColor(Color.TRANSPARENT)
-                .navBarColor(Color.parseColor("#22050505"))
+                .navBarColor("#22050505".toColorInt())
                 .immerse(WindowInsetsCompat.Type.statusBars()).build()
             barUtils.apply(barConfig)
         }

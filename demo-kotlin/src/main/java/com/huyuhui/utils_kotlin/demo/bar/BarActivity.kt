@@ -4,17 +4,21 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
+import androidx.core.graphics.toColorInt
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.huyuhui.hyhutilskotlin.bar.BarUtils
-import com.huyuhui.utils_kotlin.demo.placeholder.PlaceholderFragment
 import com.huyuhui.utils_kotlin.demo.BaseActivity
 import com.huyuhui.utils_kotlin.demo.R
 import com.huyuhui.utils_kotlin.demo.databinding.ActivityBarBinding
 import com.huyuhui.utils_kotlin.demo.evaluate
+import com.huyuhui.utils_kotlin.demo.placeholder.PlaceholderFragment
 import kotlin.math.abs
 
 class BarActivity : BaseActivity<ActivityBarBinding>() {
@@ -25,13 +29,13 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         setContentView(binding.root)
         val barUtils = BarUtils(window)
         barUtils.apply {
-            statusBarColor = Color.parseColor("#22050505")
+            statusBarColor = "#22050505".toColorInt()
             isStatusBarLightMode = false
-            navBarColor = Color.parseColor("#22050505")
+            navBarColor = "#22050505".toColorInt()
             isNavBarLightMode = true
             setStatusBarVisibility(false)
             titleView(binding.toolbar)
-            immerse()
+            immerse(WindowInsetsCompat.Type.statusBars())
         }
         val fragments =
             mutableListOf(PlaceholderFragment.newInstance(1), PlaceholderFragment.newInstance(2))
@@ -53,7 +57,7 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
 //            binding.toolbar.alpha = abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange
             barUtils.statusBarColor = evaluate(
                 abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange + 0.5f,
-                Color.parseColor("#22050505"),
+                "#22050505".toColorInt(),
                 Color.TRANSPARENT
             )
         }
@@ -61,6 +65,10 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             barUtils.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.appbar) { v: View, insets: WindowInsetsCompat ->
+            Log.e("123","${insets.getInsets(WindowInsetsCompat.Type.systemBars())}")
+            return@setOnApplyWindowInsetsListener insets
         }
     }
 

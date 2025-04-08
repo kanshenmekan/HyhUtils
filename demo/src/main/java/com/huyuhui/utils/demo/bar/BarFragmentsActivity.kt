@@ -1,6 +1,7 @@
 package com.huyuhui.utils.demo.bar
 
 import android.os.Bundle
+import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.navigation.NavigationBarView
 import com.huyuhui.utils.demo.BaseActivity
 import com.huyuhui.utils.demo.R
@@ -8,6 +9,8 @@ import com.huyuhui.utils.demo.bar.fragments.AFragment
 import com.huyuhui.utils.demo.bar.fragments.BFragment
 import com.huyuhui.utils.demo.bar.fragments.CFragment
 import com.huyuhui.utils.demo.databinding.ActivityBarFragmentsBinding
+import androidx.core.view.get
+import com.huyuhui.utils.bar.BarUtils
 
 class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
     private val aFragment = AFragment()
@@ -55,8 +58,9 @@ class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
                 .hide(bFragment)
                 .hide(cFragment)
                 .show(aFragment)
-            onItemSelectedListener.onNavigationItemSelected(binding.navView.menu.getItem(0))
+            onItemSelectedListener.onNavigationItemSelected(binding.navView.menu[0])
         }.commit()
         binding.navView.setOnItemSelectedListener(onItemSelectedListener)
+        BarUtils.with(this).clearViewAppliedInsets(binding.navView, WindowInsetsCompat.Type.navigationBars())
     }
 }
