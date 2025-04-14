@@ -17,12 +17,12 @@ import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsAnimationControlListenerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import com.huyuhui.hyhutilskotlin.rom.RomUtils.isSamsung
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -42,9 +42,19 @@ class BarUtils(private val window: Window) {
         }
     }
 
+    fun fitSystemBar(
+        view: View,
+        @WindowInsetsCompat.Type.InsetsType type: Int = WindowInsetsCompat.Type.systemBars()
+    ) {
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v: View, insets: WindowInsetsCompat ->
+            insets.getInsets(type).run {
+                v.updatePadding(left, top, right, bottom)
+            }
+            return@setOnApplyWindowInsetsListener insets
+        }
+    }
+
     companion object {
-        private const val TAG_TITLE_VIEW = "TAG_TITLE_VIEW"
-        private const val KEY_OFFSET = -12345
 
         @get:SuppressLint("InternalInsetResource", "DiscouragedApi")
         val statusBarHeight: Int
@@ -163,9 +173,7 @@ class BarUtils(private val window: Window) {
     }
 
     private val controller: WindowInsetsControllerCompat by lazy {
-        WindowInsetsControllerCompat(window, window.findViewById(android.R.id.content)).apply {
-            addOnControllableInsetsChangedListener { _: WindowInsetsControllerCompat?, _: Int -> }
-        }
+        WindowInsetsControllerCompat(window, window.decorView)
     }
 
     @Retention(AnnotationRetention.SOURCE)
@@ -177,9 +185,12 @@ class BarUtils(private val window: Window) {
     )
     internal annotation class LayoutInDisplayCutoutMode
 
-    val windowInsets: WindowInsetsCompat?
-        get() = ViewCompat.getRootWindowInsets(window.decorView)
+    suspend fun getRootWindowInsets(): WindowInsetsCompat? {
+        waitForWindowAttach()
+        return ViewCompat.getRootWindowInsets(window.decorView)
+    }
 
+    val snapshotWindowInsets: WindowInsetsCompat? get() = ViewCompat.getRootWindowInsets(window.decorView)
 
     @get:RequiresApi(api = Build.VERSION_CODES.P)
     @set:RequiresApi(api = Build.VERSION_CODES.P)
@@ -221,9 +232,7 @@ class BarUtils(private val window: Window) {
         }
         if (isVisible) {
             controller.show(WindowInsetsCompat.Type.statusBars())
-            enableTitleView()
         } else {
-            disableTitleView()
             controller.hide(WindowInsetsCompat.Type.statusBars())
         }
     }
@@ -251,19 +260,21 @@ class BarUtils(private val window: Window) {
         }
     }
 
-    val statusBarHeight: Int
-        get() {
-            return if (window.decorView.isAttachedToWindow) {
-                windowInsets?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())?.top
-                    ?: Companion.statusBarHeight
-            } else Companion.statusBarHeight
-        }
-    val isStatusBarVisible: Boolean
-        get() {
-            return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) isStatusBarVisible(window)
-            else windowInsets?.isVisible(WindowInsetsCompat.Type.statusBars())
-                ?: isStatusBarVisible(window)
-        }
+    val statusBarHeightSnapshot: Int
+        get() = snapshotWindowInsets?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())?.top
+            ?: 0
+
+    suspend fun getStatusBarHeight(): Int {
+        return getRootWindowInsets()?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars())?.top
+            ?: 0
+    }
+
+    val isStatusBarVisibleSnapshot: Boolean
+        get() = snapshotWindowInsets?.isVisible(WindowInsetsCompat.Type.statusBars()) == true
+
+    suspend fun isStatusBarVisible(): Boolean {
+        return getRootWindowInsets()?.isVisible(WindowInsetsCompat.Type.statusBars()) == true
+    }
 
     var isStatusBarLightMode: Boolean
         get() = controller.isAppearanceLightStatusBars
@@ -272,6 +283,20 @@ class BarUtils(private val window: Window) {
         }
 
 
+    @Deprecated(message = "setStatusBarContrastEnforced 和 R.attr#statusBarContrastEnforced 已废弃，但对 Android 15 仍有影响")
+    @Suppress("DEPRECATION")
+    @get:RequiresApi(Build.VERSION_CODES.Q)
+    @set:RequiresApi(Build.VERSION_CODES.Q)
+    var isStatusBarContrastEnforced: Boolean
+        get() = window.isStatusBarContrastEnforced
+        set(value) {
+            window.isStatusBarContrastEnforced = value
+        }
+
+    @Deprecated(
+        message = "android 15开始废弃了，强制edgeToEdge,android15以上设置这个完全没效果，edgeToEdge 传参代替Android14以及之前的",
+    )
+    @Suppress("DEPRECATION")
     @get:ColorInt
     var statusBarColor: Int
         get() = window.statusBarColor
@@ -298,34 +323,54 @@ class BarUtils(private val window: Window) {
         }
     }
 
-    val navBarHeight: Int
-        get() {
-            return if (window.decorView.isAttachedToWindow) {
-                windowInsets?.let {
-                    val insets =
-                        it.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars())
-                    max(max(insets.left, insets.right), insets.bottom)
-                } ?: Companion.navBarHeight
-            } else Companion.navBarHeight
-        }
-    val isNavBarVisible: Boolean
-        get() {
-            return if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                isNavBarVisible(window)
-            } else {
-                windowInsets?.isVisible(WindowInsetsCompat.Type.navigationBars())
-                    ?: isNavBarVisible(window)
-            }
-        }
+    val navBarHeightSnapshot: Int
+        get() = snapshotWindowInsets?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars())
+            ?.let { insets ->
+                return@let max(max(insets.left, insets.right), insets.bottom)
+            } ?: 0
 
+    suspend fun getNavBarHeight(): Int {
+        return getRootWindowInsets()?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars())
+            ?.let { insets ->
+                return@let max(max(insets.left, insets.right), insets.bottom)
+            } ?: 0
+    }
+
+    val isNavBarVisibleSnapshot
+        get() = snapshotWindowInsets?.isVisible(WindowInsetsCompat.Type.navigationBars()) == true
+
+    suspend fun isNavBarVisible(): Boolean {
+        return getRootWindowInsets()?.isVisible(WindowInsetsCompat.Type.navigationBars()) == true
+    }
+
+    /**
+     * api35以上开启isNavigationBarContrastEnforced才能设置navBarColor，并且强制不透明度为80%，
+     * 如果有透明度需求，先把导航栏设置为完全透明，api35以上直接设置isNavigationBarContrastEnforced = false
+     * 然后放置一个View在底部，setOnApplyWindowInsetsListener在这里面设置高度和透明度等
+     */
+    @Deprecated(
+        message = "android 15开始废弃了，强制edgeToEdge setStatusBarColor 和 R.attr#statusBarColor " +
+                "已废弃，窗口背景必须是彩色可绘制对象，此默认值才能应用,对Android15依旧有影响，使用edgeToEdge传参代替"
+    )
+    @Suppress("DEPRECATION")
     @get:ColorInt
     var navBarColor: Int
         get() = window.navigationBarColor
         set(@ColorInt value) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                window.isNavigationBarContrastEnforced = false
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                isNavigationBarContrastEnforced = true
+            }else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+                isNavigationBarContrastEnforced = false
             }
             window.navigationBarColor = value
+        }
+
+    @get:RequiresApi(Build.VERSION_CODES.Q)
+    @set:RequiresApi(Build.VERSION_CODES.Q)
+    var isNavigationBarContrastEnforced
+        get() = window.isNavigationBarContrastEnforced
+        set(value) {
+            window.isNavigationBarContrastEnforced = value
         }
 
     var isNavBarLightMode: Boolean
@@ -334,156 +379,16 @@ class BarUtils(private val window: Window) {
             controller.isAppearanceLightNavigationBars = value
         }
 
-    fun immerse(@WindowInsetsCompat.Type.InsetsType type: Int = WindowInsetsCompat.Type.systemBars()) =
-        apply {
-            if (type == WindowInsetsCompat.Type.systemBars() || type == WindowInsetsCompat.Type.statusBars() || type == WindowInsetsCompat.Type.navigationBars()) {
-                WindowCompat.setDecorFitsSystemWindows(window, false)
-            }
-            ViewCompat.setOnApplyWindowInsetsListener(
-                window.findViewById(android.R.id.content)
-            ) { v: View, insets: WindowInsetsCompat ->
-                setImmersePadding(v, type, insets)
-                ViewCompat.onApplyWindowInsets(v, insets)
-                //这里不消费掉insets了，让外部去处理,这里提供一个案例 clearViewInsets方法
-//                WindowInsetsCompat.Builder(insets).setInsets(
-//                    type,
-//                    Insets.NONE
-//                ).build()
-            }
-            window.decorView.requestApplyInsets()
-        }
 
-    fun clearViewAppliedInsets(view: View, @WindowInsetsCompat.Type.InsetsType type: Int) {
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v: View, insets: WindowInsetsCompat ->
-            WindowInsetsCompat.Builder(insets).setInsets(
-                type,
-                Insets.NONE
-            ).build()
-        }
-    }
-
-    fun exitImmerse() = apply {
-        removeTitleView()
-        WindowCompat.setDecorFitsSystemWindows(window, true)
-        ViewCompat.setOnApplyWindowInsetsListener(window.findViewById(android.R.id.content), null)
-        resetViewPadding()
-    }
-
-    private fun setImmersePadding(
-        view: View,
-        @WindowInsetsCompat.Type.InsetsType type: Int,
-        insets: WindowInsetsCompat,
-    ) {
-        if (type == WindowInsetsCompat.Type.systemBars()) {
-            view.setPadding(0, 0, 0, 0)
-            if (isStatusBarVisible) {
-                enableTitleView()
-            } else {
-                disableTitleView()
-            }
-        } else if (type == WindowInsetsCompat.Type.statusBars()) {
-            var padding = 0
-            if (isNavBarVisible) {
-                padding =
-                    insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars()).bottom
-            }
-            view.setPadding(0, 0, 0, padding)
-            if (isStatusBarVisible) {
-                enableTitleView()
-            } else {
-                disableTitleView()
-            }
-        } else if (type == WindowInsetsCompat.Type.navigationBars()) {
-            var padding = 0
-            if (isNavBarVisible) {
-                padding =
-                    insets.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars()).top
-            }
-            view.setPadding(0, padding, 0, 0)
-        }
-    }
-
-    fun titleView(view: View) = apply {
-        if (view.rootView !== window.decorView.rootView) {
-            return this
-        }
-        val titleView = window.decorView.findViewWithTag<View>(TAG_TITLE_VIEW)
-        if (titleView != null && titleView !== view) {
-            titleView.tag = null
-        }
-        view.tag = TAG_TITLE_VIEW
-        window.decorView.requestApplyInsets()
-    }
-
-    fun removeTitleView() = apply {
-        disableTitleView()
-        val view = window.decorView.findViewWithTag<View>(TAG_TITLE_VIEW) ?: return this
-        view.tag = null
-        view.setTag(KEY_OFFSET, null)
-    }
-
-    private fun resetViewPadding() {
-        disableTitleView()
-        window.findViewById<View>(android.R.id.content).setPadding(0, 0, 0, 0)
-    }
-
-    private fun enableTitleView() {
-        val view = window.decorView.findViewWithTag<View>(TAG_TITLE_VIEW) ?: return
-        val offsetObj = view.getTag(KEY_OFFSET)
-        if (offsetObj == null || offsetObj as Int == 0) {
-            val offset = statusBarHeight
-            view.setTag(KEY_OFFSET, offset)
-            updateBarView(view, offset)
-        } else {
-            var offset = offsetObj
-            if (offset != statusBarHeight) {
-                offset = statusBarHeight - offset
-                view.setTag(KEY_OFFSET, statusBarHeight)
-                updateBarView(view, offset)
-            }
-        }
-    }
-
-    private fun disableTitleView() {
-        val view = window.decorView.findViewWithTag<View>(TAG_TITLE_VIEW) ?: return
-        val offset = view.getTag(KEY_OFFSET)
-        if (offset == null || offset as Int == 0) return
-        updateBarView(view, -offset)
-        view.setTag(KEY_OFFSET, 0)
-    }
-
-
-    private fun updateBarView(titleView: View, offset: Int) {
-        val layoutParams = titleView.layoutParams
-        if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT || layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {
-            titleView.post {
-                titleView.setPaddingRelative(
-                    titleView.paddingStart,
-                    titleView.paddingTop + offset,
-                    titleView.paddingEnd,
-                    titleView.paddingBottom
-                )
-                //存在同一时间多次post，比如设置titleView又立马removeTileView，这样view.getHeight就会是之前(最开始)的值，
-                // 会造成多次offset改变都是在最开始的titleView.height，而不是在上一次的结果下进行改变
-                // 但是layoutParams.height会更新
-                if (layoutParams.height == ViewGroup.LayoutParams.WRAP_CONTENT || layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT) {
-                    layoutParams.height = titleView.height + offset
-                } else {
-                    layoutParams.height += offset
-                }
-                titleView.layoutParams = layoutParams
-            }
-        } else {
-            titleView.setPaddingRelative(
-                titleView.paddingStart,
-                titleView.paddingTop + offset,
-                titleView.paddingEnd,
-                titleView.paddingBottom
-            )
-            layoutParams.height += offset
-            titleView.layoutParams = layoutParams
-        }
-    }
+//
+//    fun clearViewAppliedInsets(view: View, @WindowInsetsCompat.Type.InsetsType type: Int) {
+//        ViewCompat.setOnApplyWindowInsetsListener(view) { v: View, insets: WindowInsetsCompat ->
+//            WindowInsetsCompat.Builder(insets).setInsets(
+//                type,
+//                Insets.NONE
+//            ).build()
+//        }
+//    }
 
 
     //这个方法可以动画控制系统这些types，listener的onReady方法里面通过动画setInsetsAndAlpha
@@ -519,18 +424,21 @@ class BarUtils(private val window: Window) {
         controller.show(WindowInsetsCompat.Type.ime())
     }
 
-    val isSoftKeyboardShow: Boolean
-        get() {
-            return if (window.decorView.isAttachedToWindow) {
-                windowInsets!!.isVisible(WindowInsetsCompat.Type.ime())
-            } else false
-        }
+    val isSoftKeyboardShowSnapshot: Boolean
+        get() = snapshotWindowInsets?.isVisible(WindowInsetsCompat.Type.ime()) == true
 
-    val softKeyboardHeight: Int
-        get() {
-            return windowInsets?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.ime())?.bottom
-                ?: 0
-        }
+    suspend fun isSoftKeyboardShow(): Boolean {
+        return getRootWindowInsets()?.isVisible(WindowInsetsCompat.Type.ime()) == true
+    }
+
+    val softKeyboardHeightSnapshot: Int
+        get() = snapshotWindowInsets?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.ime())?.bottom
+            ?: 0
+
+    suspend fun getSoftKeyboardHeight(): Int {
+        return getRootWindowInsets()?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.ime())?.bottom
+            ?: 0
+    }
 
     /**
      * 只监听键盘的高度变化，如果需要监听其他的，需要自己写setWindowInsetsAnimationCallback

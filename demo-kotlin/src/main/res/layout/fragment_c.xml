@@ -5,9 +5,14 @@
     android:layout_height="match_parent"
     tools:context=".bar.fragments.CFragment"
     android:orientation="vertical">
+    <View
+        android:id="@+id/status_bar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"/>
     <TextView
         android:id="@+id/tv"
         android:gravity="center"
+        android:paddingTop="20dp"
         android:text="C"
         android:background="@color/colorAccent"
         android:layout_width="match_parent"

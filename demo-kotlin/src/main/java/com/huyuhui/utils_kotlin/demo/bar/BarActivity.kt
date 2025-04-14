@@ -9,9 +9,12 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowManager
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.core.graphics.toColorInt
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.viewpager2.widget.ViewPager2
 import com.huyuhui.hyhutilskotlin.bar.BarUtils
 import com.huyuhui.utils_kotlin.demo.BaseActivity
@@ -27,15 +30,24 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
         binding.tv.bringToFront()
         binding = ActivityBarBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                "#22050505".toColorInt(),
+                "#22050505".toColorInt()
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                "#22050505".toColorInt(),
+                "#22050505".toColorInt()
+            )
+        )
         val barUtils = BarUtils(window)
         barUtils.apply {
-            statusBarColor = "#22050505".toColorInt()
             isStatusBarLightMode = false
-            navBarColor = "#22050505".toColorInt()
             isNavBarLightMode = true
             setStatusBarVisibility(false)
-            titleView(binding.toolbar)
-            immerse(WindowInsetsCompat.Type.statusBars())
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                navBarColor = Color.WHITE
+            }
         }
         val fragments =
             mutableListOf(PlaceholderFragment.newInstance(1), PlaceholderFragment.newInstance(2))
@@ -55,10 +67,11 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
                 barUtils.setStatusBarVisibility(false)
             }
 //            binding.toolbar.alpha = abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange
+            //android15 以上设置这个没效果，直接设置appbar的颜色就会影响statusBarColor的颜色了
             barUtils.statusBarColor = evaluate(
                 abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange + 0.5f,
                 "#22050505".toColorInt(),
-                Color.TRANSPARENT
+                "#22050505".toColorInt()
             )
         }
         setSupportActionBar(binding.toolbar)
@@ -66,8 +79,14 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
             barUtils.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appbar) { v: View, insets: WindowInsetsCompat ->
-            Log.e("123","${insets.getInsets(WindowInsetsCompat.Type.systemBars())}")
+        //让collapsingToolbarLayout不要拦截toolbar的insets
+        ViewCompat.setOnApplyWindowInsetsListener(binding.collapsingToolbarLayout) { v: View, insets: WindowInsetsCompat ->
+            return@setOnApplyWindowInsetsListener insets
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { v: View, insets: WindowInsetsCompat ->
+            Log.e("123", "${insets.getInsets(WindowInsetsCompat.Type.systemBars())}")
+            val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            v.updatePadding(top = statusBarInsets.top)
             return@setOnApplyWindowInsetsListener insets
         }
     }

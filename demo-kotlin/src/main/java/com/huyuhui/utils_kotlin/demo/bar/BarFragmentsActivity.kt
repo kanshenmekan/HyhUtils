@@ -1,8 +1,11 @@
 package com.huyuhui.utils_kotlin.demo.bar
 
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import androidx.activity.enableEdgeToEdge
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -50,6 +53,12 @@ class BarFragmentsActivity : BaseActivity<ActivityBarFragmentsBinding>() {
             onItemSelectedListener.onNavigationItemSelected(binding.navView.menu[0])
         }.commit()
         binding.navView.setOnItemSelectedListener(onItemSelectedListener)
-        BarUtils.with(this).clearViewAppliedInsets(binding.navView, WindowInsetsCompat.Type.navigationBars())
+        enableEdgeToEdge()
+        BarUtils.with(this).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                isNavigationBarContrastEnforced = false
+            }
+            isStatusBarLightMode = false
+        }
     }
 }

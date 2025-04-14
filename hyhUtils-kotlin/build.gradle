@@ -6,10 +6,10 @@ plugins {
 
 android {
     namespace 'com.huyuhui.hyhutilskotlin'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
-        minSdk 21
+        minSdk 24
     }
 
     buildTypes {
@@ -41,5 +41,5 @@ afterEvaluate {
 }
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.0'
-
+    implementation "androidx.window:window:1.4.0-rc01" // Kotlin 扩展
 }
