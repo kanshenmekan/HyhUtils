@@ -17,6 +17,7 @@ import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsAnimationControlListenerCompat
 import androidx.core.view.WindowInsetsCompat
@@ -52,6 +53,9 @@ class BarUtils(private val window: Window) {
             }
             return@setOnApplyWindowInsetsListener insets
         }
+    }
+    fun setDecorFitsSystemWindows(decorFitsSystemWindows: Boolean){
+        WindowCompat.setDecorFitsSystemWindows(window, decorFitsSystemWindows)
     }
 
     companion object {
@@ -439,7 +443,6 @@ class BarUtils(private val window: Window) {
         return getRootWindowInsets()?.getInsetsIgnoringVisibility(WindowInsetsCompat.Type.ime())?.bottom
             ?: 0
     }
-
     /**
      * 只监听键盘的高度变化，如果需要监听其他的，需要自己写setWindowInsetsAnimationCallback
      * 考虑底部高度的话，还需要考虑导航栏的高度

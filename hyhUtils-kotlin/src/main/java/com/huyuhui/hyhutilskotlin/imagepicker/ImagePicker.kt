@@ -248,7 +248,7 @@ class ImagePicker private constructor(
                 context.grantUriPermission(
                     resolveInfo.activityInfo.packageName,
                     uri,
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
                 uriPermissionMap.getOrPut(uri) { mutableSetOf() }
                     .add(resolveInfo.activityInfo.packageName)
@@ -261,7 +261,7 @@ class ImagePicker private constructor(
                 context.revokeUriPermission(
                     packageName,
                     uri,
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
             uriPermissionMap.remove(uri)
