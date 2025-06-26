@@ -31,7 +31,7 @@ import java.io.File
 class ImagePicker private constructor(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
-    private val permissionDelegate: PermissionDelegate
+    private val permissionDelegate: PermissionDelegate,
 ) {
     // 使用LinkedHashMap保持插入顺序，记录授权过的app，被授权的Uri
     private val uriPermissionMap = linkedMapOf<Uri, MutableSet<String>>()
@@ -48,7 +48,7 @@ class ImagePicker private constructor(
         lifecycleOwner.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(
                 source: LifecycleOwner,
-                event: Lifecycle.Event
+                event: Lifecycle.Event,
             ) {
                 if (event == Lifecycle.Event.ON_DESTROY) {
                     releaseAllPermissions()
@@ -137,12 +137,16 @@ class ImagePicker private constructor(
     enum class ActionType {
         TokenPhoto, SelectImage, Crop
     }
+
     //拍照返回
     var onPhotoTaken: ((File?, Uri?) -> Unit)? = null
+
     //选择图片返回
     var onImageSelected: ((File?, Uri?) -> Unit)? = null
+
     //裁剪返回
     var onImageCropped: ((File?, Uri?) -> Unit)? = null
+
     //如果你想自定义图片保存的位置，需要放在app内部存储里面，并且在filepath里面给外部访问，默认是时间戳命名
     var onCreateImageFile: ((ActionType) -> File?)? = null
 
@@ -167,7 +171,7 @@ class ImagePicker private constructor(
     fun selectImage() {
         when {
             isPhotoPickerAvailable(context) -> launchPhotoPicker()
-            else -> checkAndLaunchLegacyPicker()
+            else -> launchLegacyPicker()
         }
     }
 
@@ -205,16 +209,6 @@ class ImagePicker private constructor(
         }
     }
 
-    private fun checkAndLaunchLegacyPicker() {
-        if (permissionDelegate.isGrandPermission(Manifest.permission.READ_EXTERNAL_STORAGE)) {
-            launchLegacyPicker()
-        } else {
-            permissionDelegate.requestPermission(Manifest.permission.READ_EXTERNAL_STORAGE) { granted ->
-                if (granted) launchLegacyPicker()
-            }
-        }
-    }
-
     private fun launchPhotoPicker() {
         photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
@@ -231,12 +225,12 @@ class ImagePicker private constructor(
             putExtra("aspectY", 1)
             putExtra("outputX", width)
             putExtra("outputY", height)
-            putExtra("return-data", true)
+            putExtra("return-data", false)
             putExtra(MediaStore.EXTRA_OUTPUT, outputUri)
-//            putExtra("outputFormat", Bitmap.CompressFormat.JPEG)
+            putExtra("outputFormat", "JPEG")
             putExtra("noFaceDetection", true)
             putExtra("setDraft", true)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }
     }
 
@@ -248,7 +242,7 @@ class ImagePicker private constructor(
                 context.grantUriPermission(
                     resolveInfo.activityInfo.packageName,
                     uri,
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
                 )
                 uriPermissionMap.getOrPut(uri) { mutableSetOf() }
                     .add(resolveInfo.activityInfo.packageName)
@@ -291,7 +285,7 @@ class ImagePicker private constructor(
     companion object {
         fun create(
             activity: ComponentActivity,
-            permissionDelegate: PermissionDelegate
+            permissionDelegate: PermissionDelegate,
         ): ImagePicker {
             return ImagePicker(activity, activity, permissionDelegate).apply {
                 registerLaunchers(activity)
@@ -301,7 +295,7 @@ class ImagePicker private constructor(
         fun create(
             fragment: Fragment,
             lifecycleOwner: LifecycleOwner,
-            permissionDelegate: PermissionDelegate
+            permissionDelegate: PermissionDelegate,
         ): ImagePicker {
             return ImagePicker(
                 fragment.requireContext(),
