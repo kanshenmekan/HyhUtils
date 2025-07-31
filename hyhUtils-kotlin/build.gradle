@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.huyuhui.hyhutilskotlin'
-    compileSdk 35
+    namespace = 'com.huyuhui.hyhutilskotlin'
+    compileSdk = 35
 
     defaultConfig {
-        minSdk 24
+        minSdk = 24
     }
 
     buildTypes {
@@ -22,8 +22,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = '17'
+    kotlin {
+        jvmToolchain(17) // 设置 JVM 17
+    }
+    publishing {
+        singleVariant("release") {}
     }
 }
 afterEvaluate {

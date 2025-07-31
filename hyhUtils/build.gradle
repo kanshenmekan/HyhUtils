@@ -5,18 +5,18 @@ plugins {
 }
 
 android {
-    namespace 'com.huyuhui.utils'
-    compileSdk 34
+    namespace = 'com.huyuhui.utils'
+    compileSdk = 34
 
     defaultConfig {
-        minSdk 21
+        minSdk = 21
 
     }
 
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     publishing{
         singleVariant('release'){
@@ -25,7 +25,7 @@ android {
         }
     }
     lint {
-        abortOnError false
+        abortOnError = false
     }
 }
 

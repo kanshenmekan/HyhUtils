@@ -46,6 +46,7 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
             isNavBarLightMode = true
             setStatusBarVisibility(false)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                @Suppress("DEPRECATION")
                 navBarColor = Color.WHITE
             }
         }
@@ -68,6 +69,7 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
             }
 //            binding.toolbar.alpha = abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange
             //android15 以上设置这个没效果，直接设置appbar的颜色就会影响statusBarColor的颜色了
+            @Suppress("DEPRECATION")
             barUtils.statusBarColor = evaluate(
                 abs(verticalOffset).toFloat() / appBarLayout.totalScrollRange + 0.5f,
                 "#22050505".toColorInt(),
@@ -84,7 +86,6 @@ class BarActivity : BaseActivity<ActivityBarBinding>() {
             return@setOnApplyWindowInsetsListener insets
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { v: View, insets: WindowInsetsCompat ->
-            Log.e("123", "${insets.getInsets(WindowInsetsCompat.Type.systemBars())}")
             val statusBarInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             v.updatePadding(top = statusBarInsets.top)
             return@setOnApplyWindowInsetsListener insets

@@ -36,6 +36,7 @@ internal class LanguagesObserver(private val application: Application) : Compone
         }
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onLowMemory() {
     }
 
